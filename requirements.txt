@@ -2,5 +2,5 @@ streamlit
 requests
 python-dotenv
 openai
-elasticsearch
 sentence-transformers
+elasticsearch==7.17.9
