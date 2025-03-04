@@ -10,6 +10,7 @@ def save_to_file(filename, text):
     except Exception as e:
         logging.error(f"Failed to save file {filename}: {e}")
 
+
 def convert_to_json_format(input_file, qb_id, created_by):
     with open(input_file, 'r', encoding='utf-8') as file:
         content = file.read()
@@ -38,31 +39,30 @@ def convert_to_json_format(input_file, qb_id, created_by):
             if code_block:
                 question_data += f"$$$examly{code_block}"
 
-            # Extract options
-            options = [option.replace('**', '') for option in re.findall(r'\d+\)\s*(.*?)(?=\n\d+\)|\nCorrect answer:|\Z)', question, re.DOTALL)]
-            options = [option.strip() for option in options]
+            # Extract options (ensure exactly four)
+            options = re.findall(r'\d+\)\s*(.*?)(?=\n\d+\)|\nCorrect answer:|\Z)', question, re.DOTALL)
+            options = [opt.strip() for opt in options if opt.strip()]
 
-            # Process options to remove extra markup
-            processed_options = []
-            for option in options:
-                # Remove ```java and ``` if present
-                option = re.sub(r'```(java|javascript|html|typescript|cpp|csharp|js|css|sql|bash|yaml)\n?|```|`', '', option)
-                # Remove leading/trailing whitespace and newlines
-                option = option.strip()
-                processed_options.append(option)
+            # If more than 4 options, remove the first one
+            if len(options) > 4:
+                logging.warning(f"Question {i}: More than 4 options found. Removing the first option.")
+                options.pop(0)  # Remove the first option
 
-            if len(processed_options) < 2:
-                logging.warning(f"Question {i}: Insufficient number of options: {len(processed_options)}")
-                continue
+            # Ensure exactly 4 options remain
+            if len(options) != 4:
+                logging.warning(f"Question {i}: Incorrect number of options ({len(options)}). Skipping question.")
+                continue  # Skip this question if there are not exactly 4 options
 
+            # Extract correct answer
             correct_answer_match = re.search(r'Correct answer:\s*(\d+)', question)
             if not correct_answer_match:
                 logging.warning(f"Question {i}: No correct answer found")
                 continue
-            correct_answer = int(correct_answer_match.group(1)) - 1
+            correct_answer_index = int(correct_answer_match.group(1)) - 1
 
-            if correct_answer < 0 or correct_answer >= len(processed_options):
-                logging.warning(f"Question {i}: Correct answer index out of range. Index: {correct_answer}, Options: {len(processed_options)}")
+            # Ensure correct answer index is within range
+            if correct_answer_index < 0 or correct_answer_index >= len(options):
+                logging.warning(f"Question {i}: Correct answer index out of range. Index: {correct_answer_index}, Options: {len(options)}")
                 continue
 
             difficulty = re.search(r'Difficulty:\s*(\w+)', question)
@@ -74,9 +74,9 @@ def convert_to_json_format(input_file, qb_id, created_by):
             json_question = {
                 "question_type": "mcq_single_correct",
                 "question_data": question_data,
-                "options": [{"text": option, "media": ""} for option in processed_options],
+                "options": [{"text": opt, "media": ""} for opt in options],
                 "answer": {
-                    "args": [processed_options[correct_answer]],
+                    "args": [options[correct_answer_index]],
                     "partial": []
                 },
                 "subject_id": None,
