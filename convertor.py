@@ -31,7 +31,7 @@ def convert_to_json_format(input_file, qb_id, created_by):
             question_text = question_match.group(1).strip()
 
             # Extract code snippet
-            code_match = re.search(r'```(?:java|javascript|html|typescript|cpp|csharp|js|css|sql|yaml|bash)\n(.*?)```', question, re.DOTALL)
+            code_match = re.search(r'```(?:java|javascript|html|typescript|cpp|csharp|js|css|sql|yaml|bash|python)\n(.*?)```', question, re.DOTALL)
             code_block = code_match.group(1).strip() if code_match else ""
 
             # Combine question text and code block
